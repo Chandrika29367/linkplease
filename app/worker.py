@@ -150,6 +150,7 @@ class DMWorker:
                             db.add(blocked)
                         else:
                             # Attempt to acquire rule_id/user_id lock
+                            nested = db.begin_nested()
                             try:
                                 processed = ProcessedComment(
                                     rule_id=rule.id,
@@ -175,8 +176,9 @@ class DMWorker:
                                     updated_at=datetime.datetime.utcnow()
                                 )
                                 db.add(job)
+                                nested.commit()
                             except IntegrityError:
-                                db.rollback()
+                                nested.rollback()
                                 # Log blocked attempt on concurrent constraint conflict
                                 blocked = BlockedAttempt(
                                     event_id=event.event_id,
